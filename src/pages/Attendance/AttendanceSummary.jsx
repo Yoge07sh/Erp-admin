@@ -73,15 +73,13 @@ function AttendanceSummary() {
     };
   }, [date]);
 
-  const markedCount = subjects.filter((subject) => subject.marked).length;
-
-  const pendingCount = subjects.length - markedCount;
-
   return (
     <Container fluid className="py-3 px-3">
       <div className="text-center mb-3">
         <h3 className="text-primary fw-bold mb-1">ATTENDANCE SUMMARY</h3>
-        <small className="text-muted">Subject-wise attendance status</small>
+        <small className="text-muted">
+          Marked lectures and their time slots
+        </small>
       </div>
 
       <Card className="border-0 shadow-sm mb-3">
@@ -99,15 +97,9 @@ function AttendanceSummary() {
             />
           </Form.Group>
 
-          <div className="d-flex gap-2">
-            <Badge bg="success" className="p-2">
-              Marked: {markedCount}
-            </Badge>
-
-            <Badge bg="warning" text="dark" className="p-2">
-              Not marked: {pendingCount}
-            </Badge>
-          </div>
+          <Badge bg="success" className="p-2">
+            Marked Lectures: {subjects.length}
+          </Badge>
         </Card.Body>
       </Card>
 
@@ -124,9 +116,11 @@ function AttendanceSummary() {
             <Table responsive bordered hover className="mb-0 align-middle">
               <thead className="table-primary">
                 <tr>
-                  <th className="text-center">S.No</th>
+                  <th className="text-center">S.No.</th>
                   <th>Subject</th>
                   <th>Class</th>
+                  <th className="text-center">Lecture</th>
+                  <th>Time Slot</th>
                   <th className="text-center">Status</th>
                 </tr>
               </thead>
@@ -134,20 +128,13 @@ function AttendanceSummary() {
               <tbody>
                 {subjects.length === 0 ? (
                   <tr>
-                    <td colSpan={4} className="text-center text-muted py-4">
-                      No subjects found for this date.
+                    <td colSpan={6} className="text-center text-muted py-4">
+                      No marked attendance found for this date.
                     </td>
                   </tr>
                 ) : (
                   subjects.map((subject, index) => (
-                    <tr
-                      key={
-                        subject.mappingId ||
-                        subject.facultyMapId ||
-                        subject._id ||
-                        index
-                      }
-                    >
+                    <tr key={subject._id}>
                       <td className="text-center">{index + 1}</td>
 
                       <td className="fw-semibold">
@@ -166,13 +153,13 @@ function AttendanceSummary() {
                       </td>
 
                       <td className="text-center">
-                        {subject.marked ? (
-                          <Badge bg="success">Marked</Badge>
-                        ) : (
-                          <Badge bg="warning" text="dark">
-                            Not marked
-                          </Badge>
-                        )}
+                        {subject.lectureNo ?? "-"}
+                      </td>
+
+                      <td>{subject.timeSlot || "-"}</td>
+
+                      <td className="text-center">
+                        <Badge bg="success">Marked</Badge>
                       </td>
                     </tr>
                   ))

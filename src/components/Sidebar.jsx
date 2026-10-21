@@ -182,7 +182,15 @@ function Sidebar({ isOpen, onClose }) {
                   className="sidebar-menu-item d-flex align-items-center gap-2"
                 >
                   <i className="bi bi-clipboard-check"></i>
-                  <span>Register</span>
+                  <span>Lecute/Register</span>
+                </ListGroup.Item>
+                <ListGroup.Item
+                  as={NavLink}
+                  to="/total-attendance"
+                  className="sidebar-menu-item d-flex align-items-center gap-2"
+                >
+                  <i className="bi bi-clipboard-check"></i>
+                  <span>AttendanceRecord</span>
                 </ListGroup.Item>
               </>
             )}

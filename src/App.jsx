@@ -60,6 +60,8 @@ import AttendanceSummary from "./pages/Attendance/AttendanceSummary";
 import MyAttendance from "./pages/Attendance/MyAttendance";
 import AttendanceRegisterView from "./pages/Attendance/AttendanceRegisterView";
 import AttendanceRegisterForm from "./pages/Attendance/AttendanceREgisterform";
+import TotalAttendanceRegister from "./pages/Attendance/TotalAttendanceRegister";
+import TotalAttendanceForm from "./pages/Attendance/TotalAttendanceForm";
 
 function AppContent() {
   const location = useLocation();
@@ -171,13 +173,21 @@ function AppContent() {
         <Route path="/student/attendance" element={<MyAttendance />} />
         <Route
           path="/attendance-register"
-          element={<AttendanceRegisterForm/>}
+          element={<AttendanceRegisterForm />}
         />
 
         <Route
           path="/attendance-register/view"
-          element={<AttendanceRegisterView/>}
+          element={<AttendanceRegisterView />}
         />
+        <Route
+          path="/total-attendance-report"
+          element={<TotalAttendanceRegister />}
+        />
+        <Route
+          path="/total-attendance"
+          element={<TotalAttendanceForm />}
+        ></Route>
       </Routes>
     </AdminLayout>
   );
