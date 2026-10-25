@@ -6,14 +6,19 @@ import { useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { FaEdit, FaTrash } from "react-icons/fa";
 import Pagination from "../../components/Pagination";
+
 const apiUrl = import.meta.env.VITE_API_URL;
 
 function SubjectList() {
-  let navigate = useNavigate();
-  let [subjects, setSubjects] = useState([]);
+  const navigate = useNavigate();
+
+  const [subjects, setSubjects] = useState([]);
   const [show, setShow] = useState(false);
-  let [isDelete, setIsDelete] = useState(false);
-  let [searchBySubjectName, setSearchBySubjectName] = useState("");
+  const [isDelete, setIsDelete] = useState(false);
+
+  const [searchBySubjectName, setSearchBySubjectName] = useState("");
+  const [filterBy, setFilterBy] = useState("subjectFullName");
+
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [totalRecords, setTotalRecords] = useState(0);
@@ -21,43 +26,48 @@ function SubjectList() {
   const limit = 5;
   const token = localStorage.getItem("token");
 
+  // Fetch subjects whenever the filter, search, page, or delete state changes
   useEffect(() => {
     axios({
       url: apiUrl + "/subjects",
       method: "get",
       params: {
-        subjectFullName: searchBySubjectName,
+        [filterBy]: searchBySubjectName,
         pageNo: currentPage,
         limit: limit,
+      },
+      headers: {
+        Authorization: `Bearer ${token}`,
       },
     })
       .then((result) => {
         if (result.data.success) {
           setSubjects(result.data.data);
-
           setTotalPages(result.data.pagination.totalPages);
-
           setTotalRecords(result.data.pagination.totalRecords);
         }
       })
       .catch((error) => {
         console.log(error);
       });
-  }, [isDelete, searchBySubjectName, currentPage]);
+  }, [filterBy, searchBySubjectName, currentPage, isDelete]);
 
+  // Close success modal
   const handleClose = () => {
     setShow(false);
   };
 
+  // Navigate to Edit Subject page
   function goToEdit(id) {
-    console.log("Navigating to edit subject with ID:", id);
     navigate("/edit/subject/" + id);
   }
 
+  // Navigate to Add Subject page
   function goToAddSubjectPage() {
     navigate("/add/subject");
   }
 
+  // Delete subject
   function goToDelete(id) {
     axios({
       url: apiUrl + "/delete/subject/" + id,
@@ -77,36 +87,67 @@ function SubjectList() {
       });
   }
 
+  // Get placeholder based on selected filter
+  const getSearchPlaceholder = () => {
+    const placeholders = {
+      subjectFullName: "Subject Name",
+      subjectCode: "Subject Code",
+      subjectNickName: "Subject Short Name",
+      subjectCategory: "Subject Category",
+      subjectType: "Subject Type",
+    };
+
+    return `Search by ${placeholders[filterBy]}`;
+  };
+
   return (
-    <>
-      {" "}
-      <Container>
-        <h3 className="text-center mb-4 py-2 text-primary fw-bold text-danger">
-          LIST OF SUBJECTS
-        </h3>
+    <Container>
+      <h3 className="text-center mb-4 py-2 text-danger fw-bold">
+        LIST OF SUBJECTS
+      </h3>
 
-        <InputGroup className="mb-3" style={{ width: "100%" }}>
-          {" "}
-          <InputGroup.Text>
-            <i className="bi bi-search"></i>
-          </InputGroup.Text>
-          <Form.Control
-            type="text"
-            placeholder=" Type Subject Name to search"
-            onChange={(e) => {
-              setSearchBySubjectName(e.target.value);
-              setCurrentPage(1);
-            }}
-          />
-        </InputGroup>
-
-        <button
-          className="btn btn-success ms-3 mt-2 float-end"
-          onClick={goToAddSubjectPage}
+      {/* Filter and Search */}
+      <InputGroup className="mb-3">
+        <Form.Select
+          style={{ maxWidth: "230px" }}
+          value={filterBy}
+          onChange={(e) => {
+            setFilterBy(e.target.value);
+            setCurrentPage(1);
+          }}
         >
-          Add Subject +
-        </button>
+          <option value="subjectFullName">Subject Name</option>
+          <option value="subjectCode">Subject Code</option>
+          <option value="subjectNickName">Subject Short Name</option>
+          <option value="subjectCategory">Subject Category</option>
+          <option value="subjectType">Subject Type</option>
+        </Form.Select>
 
+        <InputGroup.Text>
+          <i className="bi bi-search"></i>
+        </InputGroup.Text>
+
+        <Form.Control
+          type="text"
+          placeholder={getSearchPlaceholder()}
+          value={searchBySubjectName}
+          onChange={(e) => {
+            setSearchBySubjectName(e.target.value);
+            setCurrentPage(1);
+          }}
+        />
+      </InputGroup>
+
+      {/* Add Subject Button */}
+      <button
+        className="btn btn-success ms-3 mt-2 float-end"
+        onClick={goToAddSubjectPage}
+      >
+        Add Subject +
+      </button>
+
+      {/* Subject Table */}
+      <div className="table-responsive">
         <table className="table text-center table-hover mt-5">
           <thead>
             <tr>
@@ -118,57 +159,73 @@ function SubjectList() {
               <th>Action</th>
             </tr>
           </thead>
-          <tbody>
-            {subjects.map((subject) => (
-              <tr>
-                <td>{subject.subjectCode}</td>
-                <td>{subject.subjectNickName}</td>
-                <td>{subject.subjectCategory}</td>
-                <td>{subject.subjectType}</td>
-                <td>{subject.creditScore}</td>
-                <td>
-                  <Button
-                    variant="outline-primary"
-                    title="Edit Subject"
-                    onClick={() => goToEdit(subject._id)}
-                  >
-                    <FaEdit />
-                  </Button>
 
-                  <Button
-                    variant="outline-danger"
-                    title="Delete Subject"
-                    className="ms-2"
-                    onClick={() => goToDelete(subject._id)}
-                  >
-                    <FaTrash />
-                  </Button>
+          <tbody>
+            {subjects.length > 0 ? (
+              subjects.map((subject) => (
+                <tr key={subject._id}>
+                  <td>{subject.subjectCode}</td>
+                  <td>{subject.subjectNickName}</td>
+                  <td>{subject.subjectCategory}</td>
+                  <td>{subject.subjectType}</td>
+                  <td>{subject.creditScore}</td>
+
+                  <td>
+                    <Button
+                      variant="outline-primary"
+                      title="Edit Subject"
+                      onClick={() => goToEdit(subject._id)}
+                    >
+                      <FaEdit />
+                    </Button>
+
+                    <Button
+                      variant="outline-danger"
+                      title="Delete Subject"
+                      className="ms-2"
+                      onClick={() => goToDelete(subject._id)}
+                    >
+                      <FaTrash />
+                    </Button>
+                  </td>
+                </tr>
+              ))
+            ) : (
+              <tr>
+                <td colSpan="6" className="text-center py-4">
+                  No subjects found.
                 </td>
               </tr>
-            ))}
+            )}
           </tbody>
         </table>
+      </div>
 
-        <Pagination
-          currentPage={currentPage}
-          totalPages={totalPages}
-          onPageChange={setCurrentPage}
-        />
+      {/* Total Records */}
+      <div className="text-muted mb-2">Total Records: {totalRecords}</div>
 
-        {/* ---------Modal code ------------- */}
-        <Modal show={show} onHide={handleClose}>
-          <Modal.Header closeButton>
-            <Modal.Title>Success</Modal.Title>
-          </Modal.Header>
-          <Modal.Body>Subject has been Deleted successfully👍</Modal.Body>
-          <Modal.Footer>
-            <Button variant="danger" onClick={handleClose}>
-              Close
-            </Button>
-          </Modal.Footer>
-        </Modal>
-      </Container>
-    </>
+      {/* Pagination */}
+      <Pagination
+        currentPage={currentPage}
+        totalPages={totalPages}
+        onPageChange={setCurrentPage}
+      />
+
+      {/* Delete Success Modal */}
+      <Modal show={show} onHide={handleClose}>
+        <Modal.Header closeButton>
+          <Modal.Title>Success</Modal.Title>
+        </Modal.Header>
+
+        <Modal.Body>Subject has been deleted successfully 👍</Modal.Body>
+
+        <Modal.Footer>
+          <Button variant="danger" onClick={handleClose}>
+            Close
+          </Button>
+        </Modal.Footer>
+      </Modal>
+    </Container>
   );
 }
 

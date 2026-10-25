@@ -1,37 +1,55 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+
 import "bootstrap/dist/css/bootstrap.min.css";
 import "bootstrap-icons/font/bootstrap-icons.css";
+
 import axios from "axios";
-import { Form, InputGroup, Button, Modal } from "react-bootstrap";
+
+import { Form, InputGroup, Button, Modal, Spinner } from "react-bootstrap";
+
 import { FaEdit, FaTrash, FaEye } from "react-icons/fa";
+
 import Pagination from "../../components/Pagination";
+
 const apiUrl = import.meta.env.VITE_API_URL;
 
 function FacultyList() {
+  const navigate = useNavigate();
+  const token = localStorage.getItem("token");
+
   const [show, setShow] = useState(false);
   const [showModal, setShowModal] = useState(false);
-  let [showSpinner, setShowSpinner] = useState(false);
-  let [buttonDisabled, setButtonDisabled] = useState(false);
-  let [file, setFile] = useState("");
+
+  const [showSpinner, setShowSpinner] = useState(false);
+  const [buttonDisabled, setButtonDisabled] = useState(false);
+
+  const [file, setFile] = useState(null);
+  const [faculties, setFaculties] = useState([]);
+
+  // FILTER STATES
+  const [filterBy, setFilterBy] = useState("firstName");
+  const [searchTerm, setSearchTerm] = useState("");
+
+  // PAGINATION STATES
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [totalRecords, setTotalRecords] = useState(0);
 
   const limit = 5;
-  let navigate = useNavigate();
-  const token = localStorage.getItem("token");
-  let [faculties, setFaculties] = useState([]);
-  let [searchByFacultyName, setSearchByFacultyName] = useState("");
 
+  // =========================
+  // GET FACULTIES
+  // =========================
   useEffect(() => {
     axios({
       url: apiUrl + "/faculties",
       method: "get",
       params: {
-        firstName: searchByFacultyName,
+        filterBy,
+        search: searchTerm,
         pageNo: currentPage,
-        limit: limit,
+        limit,
       },
     })
       .then((result) => {
@@ -42,53 +60,117 @@ function FacultyList() {
         }
       })
       .catch((error) => {
-        console.log(error);
+        console.error("Error fetching faculties:", error);
       });
-  }, [searchByFacultyName, currentPage]);
+  }, [filterBy, searchTerm, currentPage]);
 
+  // =========================
+  // CSV UPLOAD MODAL
+  // =========================
   function doUploadCsv() {
     setShowModal(true);
   }
-  function doAddFaculties() {
+
+  // =========================
+  // UPLOAD CSV
+  // =========================
+  async function doAddFaculties() {
+    if (!file) {
+      alert("Please select a CSV file first.");
+      return;
+    }
+
     setButtonDisabled(true);
-    let formData = new FormData();
+    setShowSpinner(true);
+
+    const formData = new FormData();
+
     formData.append("facultyData", file);
     formData.append("fileName", file.name);
-    axios({
-      url: apiUrl + "/add/faculties",
-      method: "post",
-      data: formData,
-      headers: {
-        "content-type": "multipart/form-data",
-      },
-    })
-      .then((result) => {
-        if (result.data.success) setButtonDisabled(false);
-        setShow(true);
-        setShowSpinner(false);
-      })
-      .catch((err) => {
-        setShowSpinner(false);
-        setButtonDisabled(false);
-        alert(err);
+
+    try {
+      const result = await axios({
+        url: apiUrl + "/add/faculties",
+        method: "post",
+        data: formData,
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
       });
+
+      if (result.data.success) {
+        setShow(true);
+        setShowModal(false);
+        setFile(null);
+
+        // Refresh faculty records after uploading.
+        setCurrentPage(1);
+
+        // If already on page 1, changing the page state
+        // won't trigger a refresh, so fetch the data directly.
+        const refreshed = await axios.get(apiUrl + "/faculties", {
+          params: {
+            filterBy,
+            search: searchTerm,
+            pageNo: 1,
+            limit,
+          },
+        });
+
+        if (refreshed.data.success) {
+          setFaculties(refreshed.data.data);
+          setTotalPages(refreshed.data.pagination.totalPages);
+          setTotalRecords(refreshed.data.pagination.totalRecords);
+        }
+      } else {
+        alert(result.data.message || "Unable to upload faculty data.");
+      }
+    } catch (error) {
+      console.error("CSV upload failed:", error);
+
+      alert(
+        error.response?.data?.message ||
+          "Something went wrong while uploading the CSV.",
+      );
+    } finally {
+      setShowSpinner(false);
+      setButtonDisabled(false);
+    }
   }
 
+  // =========================
+  // CLOSE MODALS
+  // =========================
   const handleClose = () => {
     setShow(false);
     setShowModal(false);
-    navigate("/faculties");
   };
 
+  // =========================
+  // ADD FACULTY
+  // =========================
   function goToAddFacultyPage() {
     navigate("/add/faculty");
   }
 
+  // =========================
+  // EDIT FACULTY
+  // =========================
   function goToEdit(id) {
     navigate("/edit/faculty/" + id);
   }
 
-  function goToDelete(id) {
+  // =========================
+  // VIEW FACULTY
+  // =========================
+  function goToView(id) {
+    navigate("/faculty/profile/" + id);
+  }
+
+  // =========================
+  // DELETE FACULTY
+  // =========================
+  async function goToDelete(id) {
     const confirmDelete = window.confirm(
       "Are you sure you want to delete this faculty?",
     );
@@ -97,143 +179,279 @@ function FacultyList() {
       return;
     }
 
-    axios(
-      {
-        url: apiUrl + "/delete/faculty/" + id,
-        method: "delete",
-      },
-      {
+    try {
+      const result = await axios.delete(apiUrl + "/delete/faculty/" + id, {
         headers: {
           Authorization: `Bearer ${token}`,
         },
-      },
-    )
-      .then((result) => {
-        if (result.data.success) {
-          alert("Faculty deleted successfully");
-          setFaculties(faculties.filter((faculty) => faculty._id !== id));
-        }
-      })
-      .catch((err) => {
-        console.log(err.message);
-        alert("Something went wrong while deleting faculty");
       });
+
+      if (result.data.success) {
+        alert("Faculty deleted successfully.");
+
+        // Refresh the current page after deletion.
+        const refreshed = await axios.get(apiUrl + "/faculties", {
+          params: {
+            filterBy,
+            search: searchTerm,
+            pageNo: currentPage,
+            limit,
+          },
+        });
+
+        if (refreshed.data.success) {
+          let updatedFaculties = refreshed.data.data;
+          let updatedPagination = refreshed.data.pagination;
+
+          // If the last record on the current page was deleted,
+          // move back one page when possible.
+          if (updatedFaculties.length === 0 && currentPage > 1) {
+            const previousPage = currentPage - 1;
+
+            const previousResult = await axios.get(apiUrl + "/faculties", {
+              params: {
+                filterBy,
+                search: searchTerm,
+                pageNo: previousPage,
+                limit,
+              },
+            });
+
+            if (previousResult.data.success) {
+              updatedFaculties = previousResult.data.data;
+              updatedPagination = previousResult.data.pagination;
+              setCurrentPage(previousPage);
+            }
+          }
+
+          setFaculties(updatedFaculties);
+          setTotalPages(updatedPagination.totalPages);
+          setTotalRecords(updatedPagination.totalRecords);
+        }
+      }
+    } catch (error) {
+      console.error("Error deleting faculty:", error);
+
+      alert(
+        error.response?.data?.message ||
+          "Something went wrong while deleting faculty.",
+      );
+    }
   }
 
-  function goToView(id) {
-    navigate("/faculty/profile/" + id);
+  // =========================
+  // FILTER PLACEHOLDER
+  // =========================
+  function getPlaceholder() {
+    switch (filterBy) {
+      case "firstName":
+        return "Enter faculty first name";
+
+      case "lastName":
+        return "Enter faculty last name";
+
+      case "designation":
+        return "Enter designation";
+
+      case "highestQualification":
+        return "Enter highest qualification";
+
+      default:
+        return "Enter search value";
+    }
   }
 
   return (
     <>
+      {/* HEADING */}
       <h3 className="text-center mb-4 py-2 text-primary fw-bold text-danger">
         LIST OF FACULTIES
       </h3>
 
-      <InputGroup className="mb-3" style={{ width: "100%" }}>
-        {" "}
-        <InputGroup.Text>
-          <i className="bi bi-search"></i>
-        </InputGroup.Text>
-        <Form.Control
-          type="text"
-          placeholder=" Type Faculty Name to search"
-          onChange={(e) => {
-            setSearchByFacultyName(e.target.value);
-            setCurrentPage(1);
-          }}
-        />
-      </InputGroup>
-      <div className=" d-flex align-content-center gap-2 ms-3 mt-2 float-end">
-        <button className="btn btn-sm btn-success" onClick={goToAddFacultyPage}>
+      {/* FILTER SECTION */}
+      <div className="row g-2 mb-3 align-items-center">
+        <div className="col-md-3">
+          <Form.Select
+            value={filterBy}
+            onChange={(e) => {
+              setFilterBy(e.target.value);
+              setSearchTerm("");
+              setCurrentPage(1);
+            }}
+          >
+            <option value="firstName">Filter By First Name</option>
+            <option value="lastName">Filter By Last Name</option>
+            <option value="designation">Filter By Designation</option>
+            <option value="highestQualification">
+              Filter By Highest Qualification
+            </option>
+          </Form.Select>
+        </div>
+
+        <div className="col-md-9">
+          <InputGroup>
+            <InputGroup.Text>
+              <i className="bi bi-search"></i>
+            </InputGroup.Text>
+
+            <Form.Control
+              type="text"
+              placeholder={getPlaceholder()}
+              value={searchTerm}
+              onChange={(e) => {
+                setSearchTerm(e.target.value);
+                setCurrentPage(1);
+              }}
+            />
+
+            {searchTerm && (
+              <Button
+                variant="outline-secondary"
+                onClick={() => {
+                  setSearchTerm("");
+                  setCurrentPage(1);
+                }}
+              >
+                Clear
+              </Button>
+            )}
+          </InputGroup>
+        </div>
+      </div>
+
+      {/* ACTION BUTTONS */}
+      <div className="d-flex justify-content-end align-items-center gap-2 mb-3">
+        <Button variant="success" size="sm" onClick={goToAddFacultyPage}>
           Add Faculty +
-        </button>
-        <p>Or upload via csv</p>
-        <button
-          className="btn btn-success btn-sm "
+        </Button>
+
+        <span className="text-muted">Or upload via CSV</span>
+
+        <Button
           variant="success"
+          size="sm"
           disabled={buttonDisabled}
           onClick={doUploadCsv}
         >
-          upload Csv
-        </button>
+          Upload CSV
+        </Button>
       </div>
 
-      <table className="table text-center table-hover mt-5">
-        <thead>
-          <tr>
-            <th>Faculty Image</th>
-            <th>FacultyName</th>
-            <th>Designation</th>
-            <th>Highest Qualification</th>
-            <th>Action</th>
-          </tr>
-        </thead>
-        <tbody>
-          {faculties.map((faculty) => (
-            <tr>
-              <td className="text-center align-middle">
-                <img
-                  src={faculty.facultyImage || "/profile.png"}
-                  width="50"
-                  height="50"
-                  alt="pic"
-                  className="d-block mx-auto"
-                  style={{ objectFit: "cover" }}
-                />
-              </td>
-              <td>
-                {faculty.firstName} {faculty.lastName}
-              </td>
-              <td>{faculty.designation}</td>
-              <td>{faculty.highestQualification}</td>
-              <td>
-                <Button
-                  variant="outline-warning"
-                  title="View Faculty"
-                  onClick={() => goToView(faculty._id)}
-                >
-                  <FaEye />
-                </Button>
-                <Button
-                  variant="outline-primary"
-                  title="Edit Faculty"
-                  className="ms-2"
-                  onClick={() => goToEdit(faculty._id)}
-                >
-                  <FaEdit />
-                </Button>
-                <Button
-                  variant="outline-danger"
-                  title="Delete Faculty"
-                  className="ms-2"
-                  onClick={() => goToDelete(faculty._id)}
-                >
-                  <FaTrash />
-                </Button>
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
+      {/* TOTAL RECORDS */}
+      <div className="text-muted mb-2">
+        Total Records: <strong>{totalRecords}</strong>
+      </div>
 
-      <Pagination
-        currentPage={currentPage}
-        totalPages={totalPages}
-        onPageChange={setCurrentPage}
-      />
+      {/* FACULTY TABLE */}
+      <div className="table-responsive">
+        <table className="table text-center table-hover align-middle">
+          <thead>
+            <tr>
+              <th>Faculty Image</th>
+              <th>Faculty Name</th>
+              <th>Designation</th>
+              <th>Highest Qualification</th>
+              <th>Action</th>
+            </tr>
+          </thead>
+
+          <tbody>
+            {faculties.length > 0 ? (
+              faculties.map((faculty) => (
+                <tr key={faculty._id}>
+                  <td>
+                    <img
+                      src={faculty.facultyImage || "/profile.png"}
+                      width="50"
+                      height="50"
+                      alt="Faculty"
+                      className="d-block mx-auto rounded-circle"
+                      style={{ objectFit: "cover" }}
+                    />
+                  </td>
+
+                  <td>
+                    {faculty.firstName} {faculty.lastName}
+                  </td>
+
+                  <td>{faculty.designation || "-"}</td>
+
+                  <td>{faculty.highestQualification || "-"}</td>
+
+                  <td>
+                    <Button
+                      variant="outline-warning"
+                      title="View Faculty"
+                      onClick={() => goToView(faculty._id)}
+                    >
+                      <FaEye />
+                    </Button>
+
+                    <Button
+                      variant="outline-primary"
+                      title="Edit Faculty"
+                      className="ms-2"
+                      onClick={() => goToEdit(faculty._id)}
+                    >
+                      <FaEdit />
+                    </Button>
+
+                    <Button
+                      variant="outline-danger"
+                      title="Delete Faculty"
+                      className="ms-2"
+                      onClick={() => goToDelete(faculty._id)}
+                    >
+                      <FaTrash />
+                    </Button>
+                  </td>
+                </tr>
+              ))
+            ) : (
+              <tr>
+                <td colSpan="5" className="py-4">
+                  No faculties found.
+                </td>
+              </tr>
+            )}
+          </tbody>
+        </table>
+      </div>
+
+      {/* PAGINATION */}
+      {totalPages > 0 && (
+        <Pagination
+          currentPage={currentPage}
+          totalPages={totalPages}
+          onPageChange={setCurrentPage}
+        />
+      )}
+
+      {/* LOADING SPINNER */}
       {showSpinner && (
-        <div className="d-flex justify-content-center align-items-center vh-100">
+        <div
+          className="d-flex justify-content-center align-items-center"
+          style={{
+            position: "fixed",
+            inset: 0,
+            background: "rgba(255, 255, 255, 0.7)",
+            zIndex: 2000,
+          }}
+        >
           <Spinner animation="border" role="status">
             <span className="visually-hidden">Loading...</span>
           </Spinner>
         </div>
       )}
+
+      {/* CSV UPLOAD SUCCESS MODAL */}
       <Modal show={show} onHide={handleClose}>
         <Modal.Header closeButton>
           <Modal.Title>Success</Modal.Title>
         </Modal.Header>
-        <Modal.Body>Faculty added successfully</Modal.Body>
+
+        <Modal.Body>Faculty data uploaded successfully.</Modal.Body>
+
         <Modal.Footer>
           <Button variant="secondary" onClick={handleClose}>
             Close
@@ -241,12 +459,22 @@ function FacultyList() {
         </Modal.Footer>
       </Modal>
 
-      <Modal show={showModal} onHide={handleClose}>
-        <Modal.Header closeButton>
-          <Modal.Title>Add faculties</Modal.Title>
+      {/* CSV UPLOAD MODAL */}
+      <Modal
+        show={showModal}
+        onHide={() => {
+          if (!buttonDisabled) {
+            setShowModal(false);
+            setFile(null);
+          }
+        }}
+      >
+        <Modal.Header closeButton={!buttonDisabled}>
+          <Modal.Title>Add Faculties</Modal.Title>
         </Modal.Header>
+
         <Modal.Body>
-          <input
+          <Form.Control
             type="file"
             name="facultyData"
             accept=".csv"
@@ -255,26 +483,41 @@ function FacultyList() {
                 setFile(e.target.files[0]);
               }
             }}
+            disabled={buttonDisabled}
           />
 
           <Button
-            variant="success btn-md mt-2"
-            disabled={buttonDisabled}
+            variant="success"
+            className="mt-2"
+            disabled={buttonDisabled || !file}
             onClick={doAddFaculties}
           >
-            Upload CSV
+            {buttonDisabled ? "Uploading..." : "Upload CSV"}
           </Button>
+
           <div className="mt-3">
             <p>
-              Click below to download a <b>sample CSV file</b> for reference:
+              Click below to download a <strong>sample CSV file</strong> for
+              reference:
             </p>
+
             <a href="/demo.csv" download>
-              <Button variant="success">⬇ Download Demo CSV</Button>
+              <Button variant="success" as="span">
+                ⬇ Download Demo CSV
+              </Button>
             </a>
           </div>
         </Modal.Body>
+
         <Modal.Footer>
-          <Button variant="danger" onClick={handleClose}>
+          <Button
+            variant="danger"
+            disabled={buttonDisabled}
+            onClick={() => {
+              setShowModal(false);
+              setFile(null);
+            }}
+          >
             Close
           </Button>
         </Modal.Footer>

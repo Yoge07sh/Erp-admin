@@ -1,30 +1,28 @@
-import "bootstrap/dist/css/bootstrap.min.css";
-import "bootstrap-icons/font/bootstrap-icons.css";
-
 import axios from "axios";
-
-import { Modal, Button, Form, InputGroup } from "react-bootstrap";
-
 import { useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
 
 import { FaEdit, FaTrash } from "react-icons/fa";
+import { Modal, Button, Form, InputGroup } from "react-bootstrap";
+
 import Pagination from "../../components/Pagination";
+
 const apiUrl = import.meta.env.VITE_API_URL;
 
 function SubjectMappingList() {
-  let navigate = useNavigate();
+  const navigate = useNavigate();
 
-  let [subjectsmap, setSubjectsmap] = useState([]);
-
+  const [subjectsmap, setSubjectsmap] = useState([]);
   const [show, setShow] = useState(false);
+  const [isDelete, setIsDelete] = useState(false);
 
-  let [isDelete, setIsDelete] = useState(false);
+  const [filterBy, setFilterBy] = useState("course");
+  const [searchTerm, setSearchTerm] = useState("");
 
-  let [searchByCourse, setSearchByCourse] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [totalRecords, setTotalRecords] = useState(0);
+
   const limit = 5;
   const token = localStorage.getItem("token");
 
@@ -36,15 +34,14 @@ function SubjectMappingList() {
       url: apiUrl + "/subjectsMapped",
       method: "get",
       params: {
-        course: searchByCourse,
+        filterBy,
+        search: searchTerm,
         pageNo: currentPage,
-        limit: limit,
+        limit,
       },
     })
       .then((result) => {
         if (result.data.success) {
-          console.log(result.data.data);
-
           setSubjectsmap(result.data.data);
 
           setTotalPages(result.data.pagination.totalPages);
@@ -54,9 +51,10 @@ function SubjectMappingList() {
         }
       })
       .catch((error) => {
-        console.log(error);
+        console.error("Error fetching subject mappings:", error);
       });
-  }, [isDelete, searchByCourse, currentPage]);
+  }, [filterBy, searchTerm, currentPage, isDelete]);
+
   // =========================
   // CLOSE DELETE MODAL
   // =========================
@@ -79,7 +77,6 @@ function SubjectMappingList() {
     axios({
       url: apiUrl + "/delete/subjectMapping/" + id,
       method: "delete",
-
       headers: {
         Authorization: `Bearer ${token}`,
       },
@@ -89,42 +86,98 @@ function SubjectMappingList() {
           setShow(true);
         }
       })
-      .catch((err) => {
-        console.log(err.message);
+      .catch((error) => {
+        console.error("Error deleting subject mapping:", error);
       });
   }
 
+  // =========================
+  // FILTER PLACEHOLDER
+  // =========================
+  const getPlaceholder = () => {
+    switch (filterBy) {
+      case "course":
+        return "Enter course name or short name";
+
+      case "branch":
+        return "Enter branch name or short name";
+
+      case "subject":
+        return "Enter subject name or nickname";
+
+      case "session":
+        return "Enter session (e.g. 2026-27)";
+
+      case "year":
+        return "Enter year";
+
+      case "semester":
+        return "Enter semester";
+
+      default:
+        return "Enter search value";
+    }
+  };
+
   return (
     <>
-      {/* =========================
-          HEADING
-      ========================= */}
+      {/* HEADING */}
       <h3 className="text-center mb-4 py-2 text-primary fw-bold text-danger">
         LIST OF SUBJECT MAPPING
       </h3>
 
-      {/* =========================
-          SEARCH
-      ========================= */}
-      <InputGroup className="mb-3" style={{ width: "100%" }}>
-        <InputGroup.Text>
-          <i className="bi bi-search"></i>
-        </InputGroup.Text>
+      {/* FILTER SECTION */}
+      <div className="row g-2 mb-3 align-items-center">
+        <div className="col-md-3">
+          <Form.Select
+            value={filterBy}
+            onChange={(e) => {
+              setFilterBy(e.target.value);
+              setSearchTerm("");
+              setCurrentPage(1);
+            }}
+          >
+            <option value="course">Filter By Course</option>
+            <option value="branch">Filter By Branch</option>
+            <option value="subject">Filter By Subject</option>
+            <option value="session">Filter By Session</option>
+            <option value="year">Filter By Year</option>
+            <option value="semester">Filter By Semester</option>
+          </Form.Select>
+        </div>
 
-        <Form.Control
-          type="text"
-          placeholder=" Type Course Name to search"
-          value={searchByCourse}
-          onChange={(e) => {
-            setSearchByCourse(e.target.value);
-            setCurrentPage(1);
-          }}
-        />
-      </InputGroup>
+        <div className="col-md-9">
+          <InputGroup>
+            <InputGroup.Text>
+              <i className="bi bi-search"></i>
+            </InputGroup.Text>
 
-      {/* =========================
-          ADD BUTTON
-      ========================= */}
+            <Form.Control
+              type="text"
+              placeholder={getPlaceholder()}
+              value={searchTerm}
+              onChange={(e) => {
+                setSearchTerm(e.target.value);
+                setCurrentPage(1);
+              }}
+            />
+
+            {searchTerm && (
+              <Button
+                variant="outline-secondary"
+                onClick={() => {
+                  setSearchTerm("");
+                  setCurrentPage(1);
+                }}
+              >
+                Clear
+              </Button>
+            )}
+          </InputGroup>
+        </div>
+      </div>
+
+      {/* ADD BUTTON */}
       <button
         className="btn btn-success ms-3 mt-2 float-end"
         onClick={() => navigate("/add/subjectMapping")}
@@ -132,95 +185,109 @@ function SubjectMappingList() {
         Map Subject +
       </button>
 
-      {/* =========================
-          TABLE
-      ========================= */}
-      <table className="table text-center table-hover mt-5">
-        <thead>
-          <tr>
-            <th>Session</th>
-            <th>Subject</th>
-            <th>Course</th>
-            <th>Branch</th>
-            <th>Year</th>
-            <th>Semester</th>
-            <th>Action</th>
-          </tr>
-        </thead>
+      {/* TOTAL RECORDS */}
+      <div className="mt-4 mb-2 text-muted">
+        Total Records: <strong>{totalRecords}</strong>
+      </div>
 
-        <tbody>
-          {subjectsmap.map((subject) => (
-            <tr key={subject._id}>
-              {/* SESSION */}
-              <td>{subject.session}</td>
-
-              {/* SUBJECT */}
-              <td>
-                {subject.subject?.subjectNickName ||
-                  subject.subject?.subjectFullName ||
-                  "-"}
-              </td>
-
-              {/* COURSE */}
-              <td>
-                {subject.course?.courseShortName ||
-                  subject.course?.courseFullName ||
-                  "-"}
-              </td>
-
-              {/* BRANCH */}
-              <td>
-                {subject.branch?.branchShortName ||
-                  subject.branch?.branchFullName ||
-                  "-"}
-              </td>
-
-              {/* YEAR */}
-              <td>{subject.year}</td>
-
-              {/* SEMESTER */}
-              <td>{subject.semester}</td>
-
-              {/* ACTION */}
-              <td>
-                <Button
-                  variant="outline-primary"
-                  title="Edit Subject Mapping"
-                  onClick={() => goToEdit(subject._id)}
-                >
-                  <FaEdit />
-                </Button>
-
-                <Button
-                  variant="outline-danger"
-                  title="Delete Subject Mapping"
-                  className="ms-2"
-                  onClick={() => goToDelete(subject._id)}
-                >
-                  <FaTrash />
-                </Button>
-              </td>
+      {/* TABLE */}
+      <div className="table-responsive mt-3">
+        <table className="table text-center table-hover">
+          <thead>
+            <tr>
+              <th>Session</th>
+              <th>Subject</th>
+              <th>Course</th>
+              <th>Branch</th>
+              <th>Year</th>
+              <th>Semester</th>
+              <th>Action</th>
             </tr>
-          ))}
-        </tbody>
-      </table>
+          </thead>
 
-      <Pagination
-        currentPage={currentPage}
-        totalPages={totalPages}
-        onPageChange={setCurrentPage}
-      />
+          <tbody>
+            {subjectsmap.length > 0 ? (
+              subjectsmap.map((subject) => (
+                <tr key={subject._id}>
+                  {/* SESSION */}
+                  <td>{subject.session}</td>
 
-      {/* =========================
-          DELETE SUCCESS MODAL
-      ========================= */}
+                  {/* SUBJECT */}
+                  <td>
+                    {subject.subject?.subjectNickName ||
+                      subject.subject?.subjectFullName ||
+                      "-"}
+                  </td>
+
+                  {/* COURSE */}
+                  <td>
+                    {subject.course?.courseShortName ||
+                      subject.course?.courseFullName ||
+                      "-"}
+                  </td>
+
+                  {/* BRANCH */}
+                  <td>
+                    {subject.branch?.branchShortName ||
+                      subject.branch?.branchFullName ||
+                      "-"}
+                  </td>
+
+                  {/* YEAR */}
+                  <td>{subject.year}</td>
+
+                  {/* SEMESTER */}
+                  <td>{subject.semester}</td>
+
+                  {/* ACTION */}
+                  <td>
+                    <Button
+                      variant="outline-primary"
+                      title="Edit Subject Mapping"
+                      onClick={() => goToEdit(subject._id)}
+                    >
+                      <FaEdit />
+                    </Button>
+
+                    <Button
+                      variant="outline-danger"
+                      title="Delete Subject Mapping"
+                      className="ms-2"
+                      onClick={() => goToDelete(subject._id)}
+                    >
+                      <FaTrash />
+                    </Button>
+                  </td>
+                </tr>
+              ))
+            ) : (
+              <tr>
+                <td colSpan="7" className="text-center py-4">
+                  No subject mappings found.
+                </td>
+              </tr>
+            )}
+          </tbody>
+        </table>
+      </div>
+
+      {/* PAGINATION */}
+      {totalPages > 0 && (
+        <Pagination
+          currentPage={currentPage}
+          totalPages={totalPages}
+          onPageChange={setCurrentPage}
+        />
+      )}
+
+      {/* DELETE SUCCESS MODAL */}
       <Modal show={show} onHide={handleClose}>
         <Modal.Header closeButton>
           <Modal.Title>Success</Modal.Title>
         </Modal.Header>
 
         <Modal.Body>
-          Subject Mapping has been Deleted successfully 👍
+          Subject Mapping has been deleted successfully 👍
         </Modal.Body>
 
         <Modal.Footer>
