@@ -234,38 +234,13 @@ const TotalAttendanceRegister = () => {
       format: "a4",
     });
 
-    doc.setFontSize(16);
-    doc.text("Total Attendance Register", 14, 14);
-
-    doc.setFontSize(9);
-
-    const classLine = [
-      `Session: ${classDetails?.session ?? "-"}`,
-      `Course: ${classDetails?.course || "-"}`,
-      `Branch: ${classDetails?.branch || "-"}`,
-      `Year: ${classDetails?.year ?? "-"}`,
-      `Semester: ${classDetails?.semester ?? "-"}`,
-      `Section: ${classDetails?.section ?? "-"}`,
-    ].join(" | ");
-
-    doc.text(classLine, 14, 21);
-
-    doc.text(
-      `Date Range: ${formatDate(appliedFromDate)} to ${formatDate(
-        appliedToDate,
-      )} | Total Days: ${dates.length}`,
-      14,
-      27,
-    );
-
     const head = [
       [
-        "#",
+        "S.No",
         "Roll No.",
         "Student Name",
-        ...dates.map(formatDate),
-        "Present",
         "Total Days",
+        "Present Days",
         "Attendance %",
       ],
     ];
@@ -285,16 +260,8 @@ const TotalAttendanceRegister = () => {
         index + 1,
         String(getRollNumber(student)),
         getFullName(student),
-        ...dates.map((date) => {
-          const status = student.dailyStatuses?.[date];
-
-          if (status === "P" || status === "Present") return "P";
-          if (status === "A" || status === "Absent") return "A";
-
-          return "-";
-        }),
-        points,
         total,
+        points,
         `${percentage.toFixed(2)}%`,
       ];
     });
@@ -302,12 +269,11 @@ const TotalAttendanceRegister = () => {
     autoTable(doc, {
       head,
       body,
-      startY: 32,
+      startY: 10,
       theme: "grid",
       styles: {
-        fontSize: 7,
-        cellPadding: 1.5,
-        overflow: "linebreak",
+        fontSize: 10,
+        cellPadding: 3,
         valign: "middle",
       },
       headStyles: {
@@ -316,13 +282,14 @@ const TotalAttendanceRegister = () => {
         halign: "center",
       },
       columnStyles: {
-        0: { cellWidth: 9, halign: "center" },
-        1: { cellWidth: 27 },
-        2: { cellWidth: 40 },
+        0: { cellWidth: 20, halign: "center" },
+        1: { cellWidth: 35, halign: "center" },
+        2: { cellWidth: 80 },
+        3: { cellWidth: 35, halign: "center" },
+        4: { cellWidth: 35, halign: "center" },
+        5: { cellWidth: 40, halign: "center" },
       },
-      horizontalPageBreak: true,
-      horizontalPageBreakRepeat: [0, 1, 2],
-      margin: { top: 10, right: 10, bottom: 12, left: 10 },
+      margin: { top: 10, right: 10, bottom: 10, left: 10 },
       didDrawPage: () => {
         const pageNumber = doc.internal.getCurrentPageInfo().pageNumber;
 
