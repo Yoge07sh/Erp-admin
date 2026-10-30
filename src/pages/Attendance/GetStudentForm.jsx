@@ -135,6 +135,7 @@ function GetStudentForm() {
           formData: formData,
           facultyMapId: selectedMapping,
           timeSlotId: selectedTimeSlot,
+          selectedDate: selectedDate,
         },
       });
     } catch (err) {

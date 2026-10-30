@@ -32,6 +32,7 @@ function StudentsAttendance() {
     formData = {},
     facultyMapId = "",
     timeSlotId = "",
+    selectedDate = "",
   } = location.state || {};
 
   const today = getISTDateString();
@@ -40,7 +41,7 @@ function StudentsAttendance() {
   );
 
   const [attendance, setAttendance] = useState({});
-  const [attendanceDate, setAttendanceDate] = useState(today);
+  const [attendanceDate, setAttendanceDate] = useState(selectedDate || today);
   const [submitting, setSubmitting] = useState(false);
   const [show, setShow] = useState(false);
   const [showError, setShowError] = useState(false);

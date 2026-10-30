@@ -3,7 +3,7 @@ import "bootstrap-icons/font/bootstrap-icons.css";
 
 import axios from "axios";
 
-import { Modal, Button, Form, InputGroup, Container } from "react-bootstrap";
+import { Modal, Button, Form, Container, Row, Col } from "react-bootstrap";
 
 import { useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
@@ -14,6 +14,51 @@ import Pagination from "../../components/Pagination";
 
 const apiUrl = import.meta.env.VITE_API_URL;
 
+const YEARS = [1, 2, 3, 4];
+const SEMESTERS = [1, 2, 3, 4, 5, 6, 7, 8];
+const SECTIONS = ["A", "B", "C", "D"];
+
+// Sessions like "2023-24", "2024-25" ... up to SESSION_END_YEAR
+const SESSION_START_YEAR = 2023;
+const SESSION_END_YEAR = 2030; // change this to extend the list
+
+const SESSIONS = Array.from(
+  { length: SESSION_END_YEAR - SESSION_START_YEAR + 1 },
+  (_, i) => {
+    const start = SESSION_START_YEAR + i;
+    const end = String(start + 1).slice(-2);
+    return `${start}-${end}`;
+  },
+);
+
+// Accepts [..], { data: [..] }, { courses: [..] }, { branches: [..] }, { data: { courses: [..] } }, etc.
+const toArray = (body) => {
+  if (Array.isArray(body)) return body;
+  if (!body || typeof body !== "object") return [];
+
+  const candidates = [
+    body.data,
+    body.courses,
+    body.branches,
+    body.result,
+    body.results,
+    body.data?.courses,
+    body.data?.branches,
+    body.data?.data,
+  ];
+
+  return candidates.find((c) => Array.isArray(c)) || [];
+};
+
+const emptyFilters = {
+  courseId: "",
+  branchId: "",
+  year: "",
+  semester: "",
+  section: "",
+  currentSession: "",
+};
+
 function StudentList() {
   const navigate = useNavigate();
 
@@ -22,9 +67,17 @@ function StudentList() {
   const [show, setShow] = useState(false);
   const [isDelete, setIsDelete] = useState(false);
 
-  // Filter and search
-  const [filterBy, setFilterBy] = useState("firstName");
-  const [searchTerm, setSearchTerm] = useState("");
+  // Dropdown data
+  const [courses, setCourses] = useState([]);
+  const [branches, setBranches] = useState([]);
+  const [branchLoading, setBranchLoading] = useState(false);
+  const [filterError, setFilterError] = useState("");
+
+  // Filter form values (what the user is selecting)
+  const [formFilters, setFormFilters] = useState(emptyFilters);
+
+  // Applied filters (what is actually sent to the backend)
+  const [appliedFilters, setAppliedFilters] = useState(emptyFilters);
 
   // Pagination
   const [currentPage, setCurrentPage] = useState(1);
@@ -38,6 +91,76 @@ function StudentList() {
 
   const token = localStorage.getItem("token");
 
+  // Fetch courses for the filter dropdown
+  useEffect(() => {
+    const getCourses = async () => {
+      try {
+        setFilterError("");
+
+        const result = await axios.get(`${apiUrl}/courses/for/student`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+
+        const list = toArray(result.data);
+        setCourses(list);
+
+        if (list.length === 0) {
+          setFilterError("No courses returned by the server.");
+        }
+      } catch (error) {
+        console.error("Error fetching courses:", error);
+        setFilterError(
+          `Courses failed (${error.response?.status || "network"}): ` +
+            (error.response?.data?.message || error.message),
+        );
+        setCourses([]);
+      }
+    };
+
+    getCourses();
+  }, []);
+
+  // Fetch branches whenever the selected course changes (branch needs courseId)
+  useEffect(() => {
+    if (!formFilters.courseId) {
+      setBranches([]);
+      return;
+    }
+
+    let isMounted = true;
+
+    const getBranches = async () => {
+      try {
+        setBranchLoading(true);
+
+        const result = await axios.get(`${apiUrl}/branches/for/student`, {
+          params: { courseId: formFilters.courseId },
+          headers: { Authorization: `Bearer ${token}` },
+        });
+
+        if (isMounted) setBranches(toArray(result.data));
+      } catch (error) {
+        console.error("Error fetching branches:", error);
+
+        if (isMounted) {
+          setBranches([]);
+          setFilterError(
+            `Branches failed (${error.response?.status || "network"}): ` +
+              (error.response?.data?.message || error.message),
+          );
+        }
+      } finally {
+        if (isMounted) setBranchLoading(false);
+      }
+    };
+
+    getBranches();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [formFilters.courseId]);
+
   // Fetch students
   useEffect(() => {
     let isMounted = true;
@@ -46,14 +169,13 @@ function StudentList() {
       try {
         setLoading(true);
 
-        const result = await axios.get(`${apiUrl}/students`, {
-          params: {
-            filterBy,
-            search: searchTerm,
-            page: currentPage,
-            limit,
-          },
+        // Only send filters that have a value
+        const params = { page: currentPage, limit };
+        Object.entries(appliedFilters).forEach(([key, value]) => {
+          if (value !== "") params[key] = value;
         });
+
+        const result = await axios.get(`${apiUrl}/students`, { params });
 
         if (isMounted && result.data.success) {
           setStudents(result.data.data);
@@ -86,23 +208,33 @@ function StudentList() {
     return () => {
       isMounted = false;
     };
-  }, [filterBy, searchTerm, currentPage, isDelete]);
+  }, [appliedFilters, currentPage, isDelete]);
 
-  // Filter selection
+  // Handle any filter field change
   const handleFilterChange = (e) => {
-    setFilterBy(e.target.value);
+    const { name, value } = e.target;
+
+    setFormFilters((prev) => {
+      // Changing course resets branch
+      if (name === "courseId") {
+        return { ...prev, courseId: value, branchId: "" };
+      }
+      return { ...prev, [name]: value };
+    });
+  };
+
+  // Apply filters (form submit)
+  const handleApplyFilters = (e) => {
+    e.preventDefault();
+    setAppliedFilters(formFilters);
     setCurrentPage(1);
   };
 
-  // Search input
-  const handleSearchChange = (e) => {
-    setSearchTerm(e.target.value);
-    setCurrentPage(1);
-  };
-
-  // Clear search
-  const handleClearSearch = () => {
-    setSearchTerm("");
+  // Reset filters
+  const handleResetFilters = () => {
+    setFormFilters(emptyFilters);
+    setAppliedFilters(emptyFilters);
+    setBranches([]);
     setCurrentPage(1);
   };
 
@@ -158,64 +290,144 @@ function StudentList() {
     }
   };
 
-  const filterLabels = {
-    firstName: "first name",
-    lastName: "last name",
-    enrollmentNumber: "enrollment number",
-    rollNumber: "roll number",
-    fileNumber: "file number",
-    course: "course name",
-    branch: "branch name",
-    year: "year",
-  };
-
   return (
     <Container>
       {/* Heading */}
-      <h3 className="text-center mb-4 py-2 text-primary fw-bold text-danger">
+      <h3 className="text-center mb-4 py-2 fw-bold text-danger">
         LIST OF STUDENTS
       </h3>
 
-      {/* Filter and Search */}
-      <div className="row g-2 align-items-center mb-3">
-        <div className="col-md-4">
-          <Form.Select
-            value={filterBy}
-            onChange={handleFilterChange}
-            aria-label="Select student filter"
-          >
-            <option value="firstName">First Name</option>
-            <option value="lastName">Last Name</option>
-            <option value="enrollmentNumber">Enrollment Number</option>
-            <option value="rollNumber">Roll Number</option>
-            <option value="fileNumber">File Number</option>
-            <option value="course">Course</option>
-            <option value="branch">Branch</option>
-            <option value="year">Year</option>
-          </Form.Select>
+      {/* Filter Form */}
+      <Form onSubmit={handleApplyFilters} className="border rounded p-3 mb-3">
+        {filterError && (
+          <div className="alert alert-warning py-2 mb-3">{filterError}</div>
+        )}
+        <Row className="g-3">
+          <Col md={4} lg={3}>
+            <Form.Group controlId="filterSession">
+              <Form.Label>Session</Form.Label>
+              <Form.Select
+                name="currentSession"
+                value={formFilters.currentSession}
+                onChange={handleFilterChange}
+              >
+                <option value="">All Sessions</option>
+                {SESSIONS.map((session) => (
+                  <option key={session} value={session}>
+                    {session}
+                  </option>
+                ))}
+              </Form.Select>
+            </Form.Group>
+          </Col>
+          <Col md={4} lg={3}>
+            <Form.Group controlId="filterCourse">
+              <Form.Label>Course</Form.Label>
+              <Form.Select
+                name="courseId"
+                value={formFilters.courseId}
+                onChange={handleFilterChange}
+              >
+                <option value="">All Courses</option>
+                {courses.map((course) => (
+                  <option key={course.value} value={course.value}>
+                    {course.label}
+                  </option>
+                ))}
+              </Form.Select>
+            </Form.Group>
+          </Col>
+
+          <Col md={4} lg={3}>
+            <Form.Group controlId="filterBranch">
+              <Form.Label>Branch</Form.Label>
+              <Form.Select
+                name="branchId"
+                value={formFilters.branchId}
+                onChange={handleFilterChange}
+                disabled={!formFilters.courseId || branchLoading}
+              >
+                <option value="">
+                  {!formFilters.courseId
+                    ? "Select course first"
+                    : branchLoading
+                      ? "Loading..."
+                      : "All Branches"}
+                </option>
+                {branches.map((branch) => (
+                  <option key={branch.value} value={branch.value}>
+                    {branch.label}
+                  </option>
+                ))}
+              </Form.Select>
+            </Form.Group>
+          </Col>
+
+          <Col xs={4} md={4} lg={2}>
+            <Form.Group controlId="filterYear">
+              <Form.Label>Year</Form.Label>
+              <Form.Select
+                name="year"
+                value={formFilters.year}
+                onChange={handleFilterChange}
+              >
+                <option value="">All</option>
+                {YEARS.map((y) => (
+                  <option key={y} value={y}>
+                    {y}
+                  </option>
+                ))}
+              </Form.Select>
+            </Form.Group>
+          </Col>
+
+          <Col xs={4} md={4} lg={2}>
+            <Form.Group controlId="filterSemester">
+              <Form.Label>Semester</Form.Label>
+              <Form.Select
+                name="semester"
+                value={formFilters.semester}
+                onChange={handleFilterChange}
+              >
+                <option value="">All</option>
+                {SEMESTERS.map((s) => (
+                  <option key={s} value={s}>
+                    {s}
+                  </option>
+                ))}
+              </Form.Select>
+            </Form.Group>
+          </Col>
+
+          <Col xs={4} md={4} lg={2}>
+            <Form.Group controlId="filterSection">
+              <Form.Label>Section</Form.Label>
+              <Form.Select
+                name="section"
+                value={formFilters.section}
+                onChange={handleFilterChange}
+              >
+                <option value="">All</option>
+                {SECTIONS.map((sec) => (
+                  <option key={sec} value={sec}>
+                    {sec}
+                  </option>
+                ))}
+              </Form.Select>
+            </Form.Group>
+          </Col>
+        </Row>
+
+        <div className="d-flex justify-content-end gap-2 mt-3">
+          <Button variant="outline-secondary" onClick={handleResetFilters}>
+            Reset
+          </Button>
+          <Button type="submit" variant="primary">
+            <i className="bi bi-funnel me-1"></i>
+            Apply Filters
+          </Button>
         </div>
-
-        <div className="col-md-8">
-          <InputGroup>
-            <InputGroup.Text>
-              <i className="bi bi-search"></i>
-            </InputGroup.Text>
-
-            <Form.Control
-              type="text"
-              placeholder={`Search by ${filterLabels[filterBy]}...`}
-              value={searchTerm}
-              onChange={handleSearchChange}
-            />
-
-            {searchTerm && (
-              <Button variant="outline-secondary" onClick={handleClearSearch}>
-                Clear
-              </Button>
-            )}
-          </InputGroup>
-        </div>
-      </div>
+      </Form>
 
       {/* Add Student Button */}
       <div className="d-flex justify-content-end mb-3">

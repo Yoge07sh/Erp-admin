@@ -7,7 +7,7 @@ import "bootstrap/dist/css/bootstrap.min.css";
 import { Form } from "react-bootstrap";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
-const apiUrl = import.meta.env.VITE_API_URL
+const apiUrl = import.meta.env.VITE_API_URL;
 function AddFaculty() {
   let navigate = useNavigate();
 
@@ -65,7 +65,7 @@ function AddFaculty() {
     formData.append("file", file);
     formData.append("fileName", file.name);
     axios({
-      url: apiUrl+"/add/faculty",
+      url: apiUrl + "/add/faculty",
       method: "post",
       data: formData,
       headers: {
@@ -85,33 +85,6 @@ function AddFaculty() {
         alert(err);
       });
   };
-  
-  // function doAddFaculties() {
-  //   setButtonDisabled(true);
-  //   let formData = new FormData();
-  //   formData.append("facultyData", file);
-  //   formData.append("fileName", file.name);
-  //   axios({
-  //     url: "http://localhost:3000/add/faculties",
-  //     method: "post",
-  //     data: formData,
-  //     headers: {
-  //       "content-type": "multipart/form-data",
-  //     },
-  //   })
-  //     .then((result) => {
-  //       if (result.data.success) setButtonDisabled(false);
-  //       setShow(true);
-  //       setShowSpinner(false);
-  //       SetShowForm(true);
-  //     })
-  //     .catch((err) => {
-  //       setShowSpinner(false);
-  //       setButtonDisabled(false);
-  //       SetShowForm(true);
-  //       alert(err);
-  //     });
-  // }
 
   const handleClose = () => {
     setShow(false);
@@ -120,224 +93,231 @@ function AddFaculty() {
 
   return (
     <>
-        <h3 className="text-center mb-4 py-2 text-primary fw-bold ">ADD FACULTY</h3>
-        <hr />
-   
-        {showForm && (
-          <Container fluid>
-            <Form> 
-              <Row>
-                <Col>
-                  <Form.Group className="mb-3">
-                    <Form.Label>First Name :-</Form.Label>
-                    <Form.Control
-                      type="text"
-                      onChange={(e) => setFirstName(e.target.value)}
-                      placeholder="Enter Faculty First Name"
-                    />
-                  </Form.Group>
-                </Col>
-                <Col>
-                  <Form.Group className="mb-3">
-                    <Form.Label>Last Name :-</Form.Label>
-                    <Form.Control
-                      type="text"
-                      onChange={(e) => setLastName(e.target.value)}
-                      placeholder="Enter Faculty Last Name"
-                    />
-                  </Form.Group>
-                </Col>
-              </Row>
-              <Row>
-                <Col>
-                  <Form.Group className="mb-3">
-                    <Form.Label>Personal Email :-</Form.Label>
-                    <Form.Control
-                      type="text"
-                      onChange={(e) => setPersonalEmail(e.target.value)}
-                      placeholder="Enter Personal email"
-                    />
-                  </Form.Group>
-                </Col>
+      <h3 className="text-center mb-4 py-2 text-primary fw-bold ">
+        ADD FACULTY
+      </h3>
+      <hr />
 
-                <Col>
-                  <Form.Group className="mb-3">
-                    <Form.Label>College Id :-</Form.Label>
-                    <Form.Control
-                      type="text"
-                      onChange={(e) => setCollegeId(e.target.value)}
-                      placeholder="Enter College Id"
-                    />
-                  </Form.Group>
-                </Col>
-                </Row>
-                <Row>
-                  
-                <Col>
-                  <Form.Group className="mb-3">
-                    <Form.Label>Mobile No :-</Form.Label>
-                    <Form.Control
-                      type="number"
-                      onChange={(e) => setMobileNo(e.target.value)}
-                      placeholder="Enter Mobile"
-                    />
-                  </Form.Group>
-                </Col>
-                <Col>
-                  <Form.Group className="mb-3">
-                    <Form.Label>Emergency Mobile No :-</Form.Label>
-                    <Form.Control
-                      type="number"
-                      onChange={(e) => setEmergencyMobileNo(e.target.value)}
-                      placeholder="Enter Emergency Mobile"
-                    />
-                  </Form.Group>
-                </Col>
-              </Row>
-              <Row>
-                <Col>
-                  <Form.Group className="mb-3">
-                    <Form.Label>Mother's Name :-</Form.Label>
-                    <Form.Control
-                      type="text"
-                      onChange={(e) => setMotherName(e.target.value)}
-                      placeholder="Enter Faculty mother's Name"
-                    />
-                  </Form.Group>
-                </Col>
-                <Col>
-                  <Form.Group className="mb-3">
-                    <Form.Label>Father's Name :-</Form.Label>
-                    <Form.Control
-                      type="text"
-                      onChange={(e) => setFatherName(e.target.value)}
-                      placeholder="Enter Faculty Father's Name"
-                    />
-                  </Form.Group>
-                </Col>
-              </Row>
-              <Row>
-                <Col>
-                  <Form.Label>Gender :-</Form.Label>
-                  <Form.Select
-                    aria-label="Gender"
-                    onChange={(e) => setGender(e.target.value)}
-                  >
-                    <option value="male">Male</option>
-                    <option value="female">Female</option>
-                  </Form.Select>
-                </Col>
-                <Col>
-                  <Form.Label>Married Status :-</Form.Label>
-                  <Form.Select
-                    aria-label="marriedstatus"
-                    onChange={(e) => setMarriedStatus(e.target.value)}
-                  >
-                    <option value="not married">Not Married</option>
-                    <option value="married">Married</option>
-                  </Form.Select>
-                </Col>
-              
-              </Row>
-                <Row>
-                  <Col>
-                  <Form.Group className="mb-3">
-                    <Form.Label>Date Of Birth :-</Form.Label>
-                    <Form.Control
-                      type="date"
-                      onChange={(e) => setDob(e.target.value)}
-                    />
-                  </Form.Group>
-                </Col>
-                <Col>
-                  <Form.Group className="mb-3">
-                    <Form.Label>Thumb Id :-</Form.Label>
-                    <Form.Control
-                      type="text"
-                      onChange={(e) => setThumbId(e.target.value)}
-                      placeholder="Enter Thumb Id"
-                    />
-                  </Form.Group>
-                </Col>
-              </Row>
-              <Row>
-                 <Col>
-                  <Form.Group className="mb-3">
-                    <Form.Label>College Email :-</Form.Label>
-                    <Form.Control
-                      type="text"
-                      onChange={(e) => setCollegeEmail(e.target.value)}
-                      placeholder="Enter College email"
-                    />
-                  </Form.Group>
-                </Col>
-                 <Col>
-                  <Form.Group className="mb-3">
-                    <Form.Label>Designation :-</Form.Label>
-                    <Form.Control
-                      type="text"
-                      onChange={(e) => setDesignation(e.target.value)}
-                      placeholder="Enter Designation"
-                    />
-                  </Form.Group>
-                </Col>
-              </Row>
-               <Row>
-                <Col>
-                  <Form.Group className="mb-3">
-                    <Form.Label>Upload Highest Qualification :-</Form.Label>
-                    <Form.Control
-                      type="text"
-                      onChange={(e) => setHighestQualification(e.target.value)}
-                      placeholder="Upload Highest Qualification"
-                    />
-                  </Form.Group>
-                </Col>
-                 <Col>
-                  <Form.Group className="mb-3">
-                    <Form.Label>Total Experience :-</Form.Label>
-                    <Form.Control
-                      type="number"
-                      onChange={(e) => setTotalExperience(e.target.value)}
-                      placeholder="Enter Total Experience"
-                    />
-                  </Form.Group>
-                </Col>
-              </Row>
-              <Row>
-                 <Col>
-                  <Form.Group className="mb-3">
-                    <Form.Label>Teaching Experience :-</Form.Label>
-                    <Form.Control
-                      type="number"
-                      onChange={(e) => setTeachingExperience(e.target.value)}
-                      placeholder="Enter Teaching Experience"
-                    />
-                  </Form.Group>
-                </Col>
-                 <Col>
-                  <Form.Group className="mb-3">
-                    <Form.Label>Industry Experience :-</Form.Label>
-                    <Form.Control
-                      type="number"
-                      onChange={(e) => setIndustryExperience(e.target.value)}
-                      placeholder="Enter Industry Experience"
-                    />
-                  </Form.Group>
-                </Col>
-                 <Col>
-                  <Form.Group className="mb-3">
-                    <Form.Label>Research  Experience :-</Form.Label>
-                    <Form.Control
-                      type="number"
-                      onChange={(e) => setResearchExperience(e.target.value)}
-                      placeholder="Enter Research Experience"
-                    />
-                  </Form.Group>
-                </Col>
-              </Row>
-              <Row>
-                 <Col>
+      {showForm && (
+        <Container fluid>
+          <Form
+            onSubmit={(e) => {
+              e.preventDefault();
+              doAddFaculty();
+            }}
+          >
+            <Row>
+              <Col>
+                <Form.Group className="mb-3">
+                  <Form.Label>First Name :-</Form.Label>
+                  <Form.Control
+                    type="text"
+                    onChange={(e) => setFirstName(e.target.value)}
+                    placeholder="Enter Faculty First Name"
+                    required
+                  />
+                </Form.Group>
+              </Col>
+              <Col>
+                <Form.Group className="mb-3">
+                  <Form.Label>Last Name :-</Form.Label>
+                  <Form.Control
+                    type="text"
+                    onChange={(e) => setLastName(e.target.value)}
+                    placeholder="Enter Faculty Last Name"
+                  />
+                </Form.Group>
+              </Col>
+            </Row>
+            <Row>
+              <Col>
+                <Form.Group className="mb-3">
+                  <Form.Label>Personal Email :-</Form.Label>
+                  <Form.Control
+                    type="text"
+                    onChange={(e) => setPersonalEmail(e.target.value)}
+                    placeholder="Enter Personal email"
+                  />
+                </Form.Group>
+              </Col>
+
+              <Col>
+                <Form.Group className="mb-3">
+                  <Form.Label>College Id :-</Form.Label>
+                  <Form.Control
+                    type="text"
+                    onChange={(e) => setCollegeId(e.target.value)}
+                    placeholder="Enter College Id"
+                  />
+                </Form.Group>
+              </Col>
+            </Row>
+            <Row>
+              <Col>
+                <Form.Group className="mb-3">
+                  <Form.Label>Mobile No :-</Form.Label>
+                  <Form.Control
+                    type="number"
+                    onChange={(e) => setMobileNo(e.target.value)}
+                    placeholder="Enter Mobile"
+                  />
+                </Form.Group>
+              </Col>
+              <Col>
+                <Form.Group className="mb-3">
+                  <Form.Label>Emergency Mobile No :-</Form.Label>
+                  <Form.Control
+                    type="number"
+                    onChange={(e) => setEmergencyMobileNo(e.target.value)}
+                    placeholder="Enter Emergency Mobile"
+                  />
+                </Form.Group>
+              </Col>
+            </Row>
+            <Row>
+              <Col>
+                <Form.Group className="mb-3">
+                  <Form.Label>Mother's Name :-</Form.Label>
+                  <Form.Control
+                    type="text"
+                    onChange={(e) => setMotherName(e.target.value)}
+                    placeholder="Enter Faculty mother's Name"
+                  />
+                </Form.Group>
+              </Col>
+              <Col>
+                <Form.Group className="mb-3">
+                  <Form.Label>Father's Name :-</Form.Label>
+                  <Form.Control
+                    type="text"
+                    onChange={(e) => setFatherName(e.target.value)}
+                    placeholder="Enter Faculty Father's Name"
+                  />
+                </Form.Group>
+              </Col>
+            </Row>
+            <Row>
+              <Col>
+                <Form.Label>Gender :-</Form.Label>
+                <Form.Select
+                  aria-label="Gender"
+                  onChange={(e) => setGender(e.target.value)}
+                >
+                  <option value="male">Male</option>
+                  <option value="female">Female</option>
+                </Form.Select>
+              </Col>
+              <Col>
+                <Form.Label>Married Status :-</Form.Label>
+                <Form.Select
+                  aria-label="marriedstatus"
+                  onChange={(e) => setMarriedStatus(e.target.value)}
+                >
+                  <option value="not married">Not Married</option>
+                  <option value="married">Married</option>
+                </Form.Select>
+              </Col>
+            </Row>
+            <Row>
+              <Col>
+                <Form.Group className="mb-3">
+                  <Form.Label>Date Of Birth :-</Form.Label>
+                  <Form.Control
+                    type="date"
+                    onChange={(e) => setDob(e.target.value)}
+                  />
+                </Form.Group>
+              </Col>
+              <Col>
+                <Form.Group className="mb-3">
+                  <Form.Label>Thumb Id :-</Form.Label>
+                  <Form.Control
+                    type="text"
+                    onChange={(e) => setThumbId(e.target.value)}
+                    placeholder="Enter Thumb Id"
+                  />
+                </Form.Group>
+              </Col>
+            </Row>
+            <Row>
+              <Col>
+                <Form.Group className="mb-3">
+                  <Form.Label>College Email :-</Form.Label>
+                  <Form.Control
+                    type="text"
+                    onChange={(e) => setCollegeEmail(e.target.value)}
+                    placeholder="Enter College email"
+                    required
+                  />
+                </Form.Group>
+              </Col>
+              <Col>
+                <Form.Group className="mb-3">
+                  <Form.Label>Designation :-</Form.Label>
+                  <Form.Control
+                    type="text"
+                    onChange={(e) => setDesignation(e.target.value)}
+                    placeholder="Enter Designation"
+                  />
+                </Form.Group>
+              </Col>
+            </Row>
+            <Row>
+              <Col>
+                <Form.Group className="mb-3">
+                  <Form.Label>Upload Highest Qualification :-</Form.Label>
+                  <Form.Control
+                    type="text"
+                    onChange={(e) => setHighestQualification(e.target.value)}
+                    placeholder="Upload Highest Qualification"
+                  />
+                </Form.Group>
+              </Col>
+              <Col>
+                <Form.Group className="mb-3">
+                  <Form.Label>Total Experience :-</Form.Label>
+                  <Form.Control
+                    type="number"
+                    onChange={(e) => setTotalExperience(e.target.value)}
+                    placeholder="Enter Total Experience"
+                  />
+                </Form.Group>
+              </Col>
+            </Row>
+            <Row>
+              <Col>
+                <Form.Group className="mb-3">
+                  <Form.Label>Teaching Experience :-</Form.Label>
+                  <Form.Control
+                    type="number"
+                    onChange={(e) => setTeachingExperience(e.target.value)}
+                    placeholder="Enter Teaching Experience"
+                  />
+                </Form.Group>
+              </Col>
+              <Col>
+                <Form.Group className="mb-3">
+                  <Form.Label>Industry Experience :-</Form.Label>
+                  <Form.Control
+                    type="number"
+                    onChange={(e) => setIndustryExperience(e.target.value)}
+                    placeholder="Enter Industry Experience"
+                  />
+                </Form.Group>
+              </Col>
+              <Col>
+                <Form.Group className="mb-3">
+                  <Form.Label>Research Experience :-</Form.Label>
+                  <Form.Control
+                    type="number"
+                    onChange={(e) => setResearchExperience(e.target.value)}
+                    placeholder="Enter Research Experience"
+                  />
+                </Form.Group>
+              </Col>
+            </Row>
+            <Row>
+              <Col>
                 <Form.Group className="mb-3">
                   <Form.Label>Upload Faculty Image :-</Form.Label>
                   <Form.Control
@@ -347,7 +327,7 @@ function AddFaculty() {
                   />
                 </Form.Group>
               </Col>
-              </Row>
+            </Row>
             <div className="d-flex justify-content-center gap-2 mt-4">
               <Button
                 className="me-2"
@@ -356,44 +336,40 @@ function AddFaculty() {
               >
                 Cancel
               </Button>
-              <Button
-                variant="success"
-                disabled={buttonDisabled}
-                onClick={doAddFaculty}
-              >
+              <Button variant="success" type="submit" disabled={buttonDisabled}>
                 Add Faculty
               </Button>
-              </div>
-              <span className="mx-4 text-secondary ">Or upload via csv</span>
-              {/* <Button
+            </div>
+            <span className="mx-4 text-secondary ">Or upload via csv</span>
+            {/* <Button
                 variant="success"
                 disabled={buttonDisabled}
                 onClick={doUploadCsv}
               >
                 upload Csv
               </Button> */}
-            </Form>
-          </Container>
-        )}
-        {showSpinner && (
-          <div className="d-flex justify-content-center align-items-center vh-100">
-            <Spinner animation="border" role="status">
-              <span className="visually-hidden">Loading...</span>
-            </Spinner>
-          </div>
-        )}
-        <Modal show={show} onHide={handleClose}>
-          <Modal.Header closeButton>
-            <Modal.Title>Success</Modal.Title>
-          </Modal.Header>
-          <Modal.Body>Faculty Added Successfully</Modal.Body>
-          <Modal.Footer>
-            <Button variant="secondary" onClick={handleClose}>
-              Close
-            </Button>
-          </Modal.Footer>
-        </Modal>
-        {/* <Modal show={showModal} onHide={handleClose}>
+          </Form>
+        </Container>
+      )}
+      {showSpinner && (
+        <div className="d-flex justify-content-center align-items-center vh-100">
+          <Spinner animation="border" role="status">
+            <span className="visually-hidden">Loading...</span>
+          </Spinner>
+        </div>
+      )}
+      <Modal show={show} onHide={handleClose}>
+        <Modal.Header closeButton>
+          <Modal.Title>Success</Modal.Title>
+        </Modal.Header>
+        <Modal.Body>Faculty Added Successfully</Modal.Body>
+        <Modal.Footer>
+          <Button variant="secondary" onClick={handleClose}>
+            Close
+          </Button>
+        </Modal.Footer>
+      </Modal>
+      {/* <Modal show={showModal} onHide={handleClose}>
           <Modal.Header closeButton>
             <Modal.Title>Success</Modal.Title>
           </Modal.Header>
@@ -418,7 +394,6 @@ function AddFaculty() {
             </Button>
           </Modal.Footer>
         </Modal> */}
-
     </>
   );
 }
